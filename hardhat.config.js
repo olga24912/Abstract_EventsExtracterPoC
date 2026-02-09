@@ -1,4 +1,7 @@
 require("hardhat/config");
+require("@nomicfoundation/hardhat-ethers");
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

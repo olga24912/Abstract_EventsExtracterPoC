@@ -1,7 +1,11 @@
 const hre = require("hardhat");
 
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  const signers = await hre.ethers.getSigners();
+  if (!signers.length) {
+    throw new Error("No signer: set PRIVATE_KEY in .env (and run from project root so dotenv loads it)");
+  }
+  const [deployer] = signers;
   console.log("Deploying with account:", deployer.address);
 
   const EventEmitter = await hre.ethers.getContractFactory("EventEmitter");
