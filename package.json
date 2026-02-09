@@ -1,0 +1,13 @@
+{
+  "name": "abstract-event-proofs-poc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network abstractTestnet",
+    "emit": "hardhat run scripts/emitValue.js --network abstractTestnet"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.0"
+  }
+}
