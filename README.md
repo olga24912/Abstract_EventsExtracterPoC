@@ -9,8 +9,8 @@ Everything targets **testnet**; you create and fund the account yourself.
 ### Build
 
 ```bash
-npm install
-npm run compile
+yarn install
+yarn compile
 ```
 
 ### Deploy to Abstract Testnet
@@ -18,7 +18,7 @@ npm run compile
 Set your account private key (or use `.env` with `PRIVATE_KEY=0x...`):
 
 ```bash
-PRIVATE_KEY=0x... npm run deploy
+PRIVATE_KEY=0x... yarn deploy
 ```
 
 Save the printed contract address (`EventEmitter deployed to: 0x...`).
@@ -26,11 +26,7 @@ Save the printed contract address (`EventEmitter deployed to: 0x...`).
 ### Call emitValue (emit event)
 
 ```bash
-CONTRACT_ADDRESS=0x... PRIVATE_KEY=0x... npx hardhat run scripts/emitValue.js --network abstractTestnet
+CONTRACT_ADDRESS=0x... PRIVATE_KEY=0x... yarn hardhat run scripts/emitValue.js --network abstractTestnet
 ```
 
 Optional: `VALUE=123` (default is 42). The output includes transaction hash and block number — useful for the next steps (fetching the event, verification).
-
----
-
-Next in the plan: fetching blocks, fetching events, building the proof (see [PLAN.md](PLAN.md)).
