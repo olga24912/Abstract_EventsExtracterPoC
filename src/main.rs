@@ -85,6 +85,8 @@ fn compute_block_header_hash_abstract(header: &Value) -> Result<[u8; 32]> {
         .get("transactions")
         .and_then(Value::as_array)
         .context("header missing transactions")?;
+
+    println!("txs: {:?}", txs);
     let mut txs_rolling = [0u8; 32];
     for tx in txs {
         let tx_hex = tx.as_str().context("tx not string")?;
