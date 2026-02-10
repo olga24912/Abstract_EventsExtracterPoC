@@ -1,5 +1,6 @@
 require("hardhat/config");
 require("@nomicfoundation/hardhat-ethers");
+require("@nomicfoundation/hardhat-verify");
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
@@ -15,8 +16,31 @@ module.exports = {
     abstractTestnet: {
       url: process.env.ABSTRACT_RPC_URL || "https://api.testnet.abs.xyz",
       chainId: 11124,
-      // accounts: from env PRIVATE_KEY or hardhat's default (for local testing)
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+  },
+  etherscan: {
+    apiKey: {
+      abstractTestnet: process.env.ETHERSCAN_API_KEY || "",
+      abstractMainnet: process.env.ETHERSCAN_API_KEY || "",
+    },
+    customChains: [
+      {
+        network: "abstractTestnet",
+        chainId: 11124,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api?chainid=11124",
+          browserURL: "https://sepolia.abscan.org",
+        },
+      },
+      {
+        network: "abstractMainnet",
+        chainId: 2741,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api?chainid=2741",
+          browserURL: "https://abscan.org",
+        },
+      },
+    ],
   },
 };
