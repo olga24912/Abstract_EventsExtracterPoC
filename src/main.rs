@@ -2,8 +2,105 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use serde::Deserialize;
 use serde_json::Value;
+use sha3::{Digest, Keccak256};
 use std::fs;
 use std::path::Path;
+
+/// Parse hex to bytes (no strip). For empty/ "0x" returns [].
+fn hex_to_bytes_raw(s: &str) -> Vec<u8> {
+    let s = s.trim_start_matches("0x");
+    if s.is_empty() {
+        return vec![];
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(s.get(i..i + 2).unwrap_or("0"), 16).unwrap_or(0))
+        .collect()
+}
+
+/// Minimal-length bytes for RLP integers (strip leading zeros); empty => [0].
+fn hex_to_bytes(s: &str) -> Vec<u8> {
+    let mut bytes = hex_to_bytes_raw(s);
+    if bytes.is_empty() {
+        return vec![0];
+    }
+    while bytes.len() > 1 && bytes[0] == 0 {
+        bytes.remove(0);
+    }
+    bytes
+}
+
+/// Exactly 32 bytes from hex (pad left with zeros). For hashes.
+fn hex_to_32(s: &str) -> [u8; 32] {
+    let b = hex_to_bytes_raw(s);
+    let mut out = [0u8; 32];
+    let len = b.len().min(32);
+    out[32 - len..].copy_from_slice(&b[b.len().saturating_sub(len)..]);
+    out
+}
+
+/// Exactly 20 bytes from hex (pad left). For addresses.
+fn hex_to_20(s: &str) -> [u8; 20] {
+    let b = hex_to_bytes_raw(s);
+    let mut out = [0u8; 20];
+    let len = b.len().min(20);
+    out[20 - len..].copy_from_slice(&b[b.len().saturating_sub(len)..]);
+    out
+}
+
+/// Exactly 8 bytes from hex. For nonce.
+fn hex_to_8(s: &str) -> [u8; 8] {
+    let b = hex_to_bytes_raw(s);
+    let mut out = [0u8; 8];
+    let len = b.len().min(8);
+    out[8 - len..].copy_from_slice(&b[b.len().saturating_sub(len)..]);
+    out
+}
+
+/// Abstract/zkSync L2 block hash (protocol_version >= 13):
+///   digest = u256_be(number) || u256_be(timestamp) || parent_hash || txs_rolling_hash  (128 bytes)
+///   block_hash = keccak256(digest)
+///   txs_rolling_hash: start 0; for each tx: rolling = keccak256(rolling || tx_hash)
+/// See: matter-labs/zksync-era core/lib/types/src/block.rs L2BlockHasher::finalize
+fn compute_block_header_hash_abstract(header: &Value) -> Result<[u8; 32]> {
+    let number = header
+        .get("number")
+        .and_then(Value::as_str)
+        .context("header missing number")?;
+    let number_u64 = u64::from_str_radix(number.trim_start_matches("0x"), 16)
+        .unwrap_or_else(|_| number.parse().unwrap_or(0));
+    let timestamp = header
+        .get("timestamp")
+        .and_then(Value::as_str)
+        .context("header missing timestamp")?;
+    let timestamp_u64 = u64::from_str_radix(timestamp.trim_start_matches("0x"), 16)
+        .unwrap_or_else(|_| timestamp.parse().unwrap_or(0));
+    let parent_hash = hex_to_32(
+        header
+            .get("parentHash")
+            .and_then(Value::as_str)
+            .context("header missing parentHash")?,
+    );
+    let txs = header
+        .get("transactions")
+        .and_then(Value::as_array)
+        .context("header missing transactions")?;
+    let mut txs_rolling = [0u8; 32];
+    for tx in txs {
+        let tx_hex = tx.as_str().context("tx not string")?;
+        let tx_hash = hex_to_32(tx_hex);
+        let mut input = [0u8; 64];
+        input[0..32].copy_from_slice(&txs_rolling);
+        input[32..64].copy_from_slice(&tx_hash);
+        txs_rolling = Keccak256::digest(input).into();
+    }
+    let mut digest = [0u8; 128];
+    digest[24..32].copy_from_slice(&number_u64.to_be_bytes());
+    digest[56..64].copy_from_slice(&timestamp_u64.to_be_bytes());
+    digest[64..96].copy_from_slice(&parent_hash);
+    digest[96..128].copy_from_slice(&txs_rolling);
+    Ok(Keccak256::digest(digest).into())
+}
 
 #[derive(Parser)]
 #[command(name = "abstract-event-proofs")]
@@ -218,6 +315,21 @@ fn verify_event_in_block(data_dir: &Path) -> Result<()> {
     let receipts = load_json(&receipts_path)?;
     let event = load_json(&event_path)?;
     let proof = load_json(&proof_path)?;
+
+    // Block header hash: Abstract/zkSync L2 formula; computed must match header.hash
+    let expected_hash_hex = block.get("hash").and_then(Value::as_str).context("block missing hash")?;
+    let computed = compute_block_header_hash_abstract(&block)?;
+    let computed_hex = format!("0x{}", computed.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+    let expected_norm = expected_hash_hex.trim_start_matches("0x").to_lowercase();
+    let computed_norm = computed_hex.trim_start_matches("0x").to_lowercase();
+    if expected_norm != computed_norm {
+        anyhow::bail!(
+            "Block header hash mismatch: computed {} != header.hash {}",
+            computed_hex,
+            expected_hash_hex
+        );
+    }
+    eprintln!("OK: block header hash matches (Abstract L2 formula)");
 
     let tx_hash = proof
         .get("transaction_hash")
