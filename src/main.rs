@@ -1,8 +1,31 @@
 use anyhow::{Context, Result};
+use clap::{Parser, Subcommand};
 use serde::Deserialize;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
+
+#[derive(Parser)]
+#[command(name = "abstract-event-proofs")]
+#[command(about = "Fetch block/events and verify event belongs to block")]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Fetch block header, events, receipts; save to output dir (default from config).
+    Fetch {
+        #[arg(default_value = "config.toml")]
+        config: String,
+    },
+    /// Load data from dir, verify event is in block (structural check + receipts_root).
+    Verify {
+        #[arg(default_value = "data")]
+        data_dir: String,
+    },
+}
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -178,46 +201,128 @@ fn write_event_proof(
     Ok(())
 }
 
+// --- Verify: load data from dir, check event belongs to block ---
+
+fn load_json(path: &Path) -> Result<Value> {
+    let s = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    serde_json::from_str(&s).with_context(|| format!("parse {}", path.display()))
+}
+
+fn verify_event_in_block(data_dir: &Path) -> Result<()> {
+    let block_path = data_dir.join("block_header.json");
+    let receipts_path = data_dir.join("block_receipts.json");
+    let event_path = data_dir.join("event.json");
+    let proof_path = data_dir.join("event_proof.json");
+
+    let block = load_json(&block_path)?;
+    let receipts = load_json(&receipts_path)?;
+    let event = load_json(&event_path)?;
+    let proof = load_json(&proof_path)?;
+
+    let tx_hash = proof
+        .get("transaction_hash")
+        .and_then(Value::as_str)
+        .context("event_proof missing transaction_hash")?;
+    let log_index = proof
+        .get("log_index")
+        .and_then(Value::as_str)
+        .context("event_proof missing log_index")?;
+    let receipt_index = proof
+        .get("receipt_index_in_block")
+        .and_then(Value::as_u64)
+        .context("event_proof missing receipt_index_in_block")?;
+    let expected_receipts_root = proof
+        .get("receipts_root")
+        .and_then(Value::as_str)
+        .context("event_proof missing receipts_root")?;
+
+    // 1) Transaction of the event is in the block
+    let txs = block.get("transactions").and_then(Value::as_array).context("block missing transactions")?;
+    let tx_in_block = txs.iter().any(|t| t.as_str() == Some(tx_hash));
+    if !tx_in_block {
+        anyhow::bail!("Transaction {} not found in block transactions", tx_hash);
+    }
+    eprintln!("OK: transaction {} is in block", tx_hash);
+
+    // 2) Receipt at receipt_index has this transaction and contains the log
+    let receipts_arr = receipts.as_array().context("block_receipts not array")?;
+    let receipt = receipts_arr
+        .get(receipt_index as usize)
+        .context("receipt_index out of range")?;
+    if receipt.get("transactionHash").and_then(Value::as_str) != Some(tx_hash) {
+        anyhow::bail!("Receipt at index {} has different transaction hash", receipt_index);
+    }
+    let logs = receipt.get("logs").and_then(Value::as_array).context("receipt missing logs")?;
+    let log_index_u = u64::from_str_radix(log_index.trim_start_matches("0x"), 16)
+        .unwrap_or_else(|_| log_index.parse().unwrap_or(0));
+    let log_entry = logs
+        .iter()
+        .find(|l| {
+            let li = l.get("logIndex").and_then(Value::as_str);
+            let li_u = li.and_then(|s| u64::from_str_radix(s.trim_start_matches("0x"), 16).ok()).unwrap_or(0);
+            li_u == log_index_u
+        })
+        .context("log with logIndex not found in receipt")?;
+    // Match event fields
+    let eq = |k: &str| {
+        event.get(k).and_then(Value::as_str) == log_entry.get(k).and_then(Value::as_str)
+    };
+    if !eq("address") || !eq("transactionHash") {
+        anyhow::bail!("Event log does not match receipt log (address or tx hash)");
+    }
+    if event.get("topics").and_then(Value::as_array) != log_entry.get("topics").and_then(Value::as_array) {
+        anyhow::bail!("Event topics do not match receipt log");
+    }
+    if event.get("data").and_then(Value::as_str) != log_entry.get("data").and_then(Value::as_str) {
+        anyhow::bail!("Event data does not match receipt log");
+    }
+    eprintln!("OK: event log is in receipt at index {}", receipt_index);
+
+    // 3) Block header receipts_root matches proof (we trust the block header we saved)
+    let block_receipts_root = block.get("receiptsRoot").and_then(Value::as_str).context("block missing receiptsRoot")?;
+    let root_match = block_receipts_root.trim_start_matches("0x").to_lowercase()
+        == expected_receipts_root.trim_start_matches("0x").to_lowercase();
+    if !root_match {
+        anyhow::bail!(
+            "Block receiptsRoot {} != proof receipts_root {}",
+            block_receipts_root,
+            expected_receipts_root
+        );
+    }
+    eprintln!("OK: block receiptsRoot matches proof");
+
+    println!("Verify OK: event belongs to block (structural check passed, receipts_root match).");
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let config_path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| "config.toml".to_string());
-    let config = load_config(&config_path)?;
-
-    let out_dir = if config.output_dir.is_empty() {
-        Path::new(".")
-    } else {
-        Path::new(&config.output_dir)
-    };
-    ensure_output_dir(out_dir)?;
-
-    let client = reqwest::Client::new();
-    let block_hex = format!("0x{:x}", config.block_number);
-
-    let block = fetch_block_header(&client, &config.rpc_url, &block_hex).await?;
-    write_block_header(out_dir, &block)?;
-
-    let events = fetch_events(
-        &client,
-        &config.rpc_url,
-        &block_hex,
-        &config.contract_address,
-    )
-    .await?;
-    let event = write_events(
-        out_dir,
-        &events,
-        config.block_number,
-        &config.contract_address,
-    )?;
-
-    let receipts = fetch_block_receipts(&client, &config.rpc_url, &block_hex).await?;
-    write_block_receipts(out_dir, &receipts)?;
-
-    if let Some(ref ev) = event {
-        write_event_proof(out_dir, config.block_number, &block, ev, &receipts)?;
+    let cli = Cli::parse();
+    match cli.command.unwrap_or(Commands::Fetch { config: "config.toml".to_string() }) {
+        Commands::Fetch { config } => {
+            let config = load_config(&config)?;
+            let out_dir = if config.output_dir.is_empty() {
+                Path::new(".")
+            } else {
+                Path::new(&config.output_dir)
+            };
+            ensure_output_dir(out_dir)?;
+            let client = reqwest::Client::new();
+            let block_hex = format!("0x{:x}", config.block_number);
+            let block = fetch_block_header(&client, &config.rpc_url, &block_hex).await?;
+            write_block_header(out_dir, &block)?;
+            let events = fetch_events(&client, &config.rpc_url, &block_hex, &config.contract_address).await?;
+            let event = write_events(out_dir, &events, config.block_number, &config.contract_address)?;
+            let receipts = fetch_block_receipts(&client, &config.rpc_url, &block_hex).await?;
+            write_block_receipts(out_dir, &receipts)?;
+            if let Some(ref ev) = event {
+                write_event_proof(out_dir, config.block_number, &block, ev, &receipts)?;
+            }
+        }
+        Commands::Verify { data_dir } => {
+            let data_path = Path::new(&data_dir);
+            verify_event_in_block(data_path)?;
+        }
     }
-
     Ok(())
 }

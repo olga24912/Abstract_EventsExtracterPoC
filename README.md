@@ -70,14 +70,14 @@ Edit `config.toml`:
 - `contract_address` — Deployed EventEmitter address.
 - `output_dir` — (optional) Directory for output files; default is current directory.
 
-### Build and run
+### Build and run fetch
 
 ```bash
 cargo build
-cargo run -- config.toml
+cargo run -- fetch config.toml
 ```
 
-Or with a custom config path: `cargo run -- /path/to/config.toml`.
+Default (no subcommand) also runs fetch with `config.toml`. Custom config: `cargo run -- fetch /path/to/config.toml`.
 
 ### Output files
 
@@ -88,3 +88,16 @@ Or with a custom config path: `cargo run -- /path/to/config.toml`.
 | `event.json` | First matching event (the one we will prove). |
 | `block_receipts.json` | All transaction receipts from `eth_getBlockReceipts`. |
 | `event_proof.json` | Proof metadata: `receipt_index_in_block`, `transaction_hash`, `log_index`, `receipts_root` — used later to verify the event belongs to the block. |
+
+---
+
+## Step 2: Verify (event belongs to block)
+
+Reads the saved data from a directory (e.g. `data/`), checks that the event’s transaction is in the block, that the event log is in the corresponding receipt, and that the block’s `receiptsRoot` matches the proof.
+
+```bash
+cargo run -- verify data
+```
+
+Or: `cargo run -- verify /path/to/data/dir`.  
+If all checks pass, the program prints: `Verify OK: event belongs to block (...)`.
