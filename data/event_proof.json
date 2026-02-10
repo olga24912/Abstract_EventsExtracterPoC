@@ -1,0 +1,9 @@
+{
+  "block_hash": "0x33495cffbc44c4eed70459e0a3372f4178397a57b0c51df0b2fc5618e49078b8",
+  "block_number": 16537864,
+  "log_index": "0x2",
+  "note": "Verify by recomputing receiptsRoot from block_receipts.json and comparing to receipts_root",
+  "receipt_index_in_block": 0,
+  "receipts_root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "transaction_hash": "0x5c683f5219a4bd69e4e3fcad641a7d975cc24e8d35e9f025d0eb65029dc8d425"
+}

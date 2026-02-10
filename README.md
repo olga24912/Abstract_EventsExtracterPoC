@@ -54,3 +54,37 @@ yarn hardhat verify --network abstractTestnet 0x1234...abcd
 ```
 
 If the contract had constructor arguments, you would append them after the address. See [Abstract: Verifying contracts](https://docs.abs.xyz/build-on-abstract/smart-contracts/hardhat/verifying-contracts).
+
+---
+
+## Step 1: Fetch block, event, and proof data (Rust)
+
+Fetches the block header, events for your contract in that block, block receipts, and proof metadata. All output is saved to files in the current directory (or `output_dir` from config).
+
+### Config
+
+Edit `config.toml`:
+
+- `rpc_url` — Abstract RPC (default: testnet).
+- `block_number` — Block where the event was emitted (e.g. from `emitValue` output).
+- `contract_address` — Deployed EventEmitter address.
+- `output_dir` — (optional) Directory for output files; default is current directory.
+
+### Build and run
+
+```bash
+cargo build
+cargo run -- config.toml
+```
+
+Or with a custom config path: `cargo run -- /path/to/config.toml`.
+
+### Output files
+
+| File | Content |
+|------|---------|
+| `block_header.json` | Block header from `eth_getBlockByNumber` (includes `receiptsRoot`, `transactionsRoot`). |
+| `events.json` | All logs from `eth_getLogs` for that block and contract. |
+| `event.json` | First matching event (the one we will prove). |
+| `block_receipts.json` | All transaction receipts from `eth_getBlockReceipts`. |
+| `event_proof.json` | Proof metadata: `receipt_index_in_block`, `transaction_hash`, `log_index`, `receipts_root` — used later to verify the event belongs to the block. |

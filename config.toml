@@ -1,0 +1,10 @@
+# RPC endpoint (Abstract testnet default)
+rpc_url = "https://api.testnet.abs.xyz"
+
+# Block number where to look for the event
+block_number = 16537864
+
+# Contract address that emits the event (EventEmitter)
+contract_address = "0x7B6767C50fB303fC90E7E49c1d1d951F6De644c6"
+
+output_dir="./data"
