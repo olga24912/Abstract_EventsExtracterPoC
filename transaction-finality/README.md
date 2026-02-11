@@ -84,26 +84,26 @@ Abstract exposes **eth_getBlockByNumber**. The first parameter can be a **block 
 | `"pending"`   | Pending / not yet sealed. |
 | `"0x1234"`    | Block number in hex (e.g. the block that contains your tx). |
 
+**Example output** (excerpt: `number`, `l1BatchNumber`, `hash`):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "hash": "0xe3f41867d8e43eee5a9c6aa79032bfbfe59d289b1b4507894fed445769f963f1",
+    "number": "0xfc9c61",
+    "l1BatchNumber": "0x4f4e",
+    ...
+  }
+}
+```
+
 **Examples (use Abstract RPC and optional `TX_HASH` / block from receipt):**
 ```bash
 export RPC="https://api.testnet.abs.xyz"
-export TX_HASH="0x..."
-
-# Block by tag
-curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["latest", false]}' | jq '.result.number, .result.hash'
 
 curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["safe", false]}' | jq '.result.number'
-
-curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["finalized", false]}' | jq '.result.number'
-
-# Block by number (e.g. block of your tx from receipt)
-BLOCK_HEX=$(curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$TX_HASH\"]}" | jq -r '.result.blockNumber')
-curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_getBlockByNumber\",\"params\":[\"$BLOCK_HEX\", false]}" | jq '.result.number, .result.hash, .result.transactions | length'
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["finalized", false]}' | jq
 ```
 
 Second parameter `false` = return block without full tx objects; use `true` for full transactions. 
