@@ -142,7 +142,7 @@ Response shows whether the batch is committed/proven/executed on L1 and the L1 t
 
 ## Check finality of a transaction (script)
 
-**`check-finality.sh`** — same idea as on Ethereum: get tx block number from receipt, get current finalized block number, compare. If tx block ≤ finalized block → transaction is finalized.
+**`check-finality.sh`** — same idea as on Ethereum: get tx block number, get current **safe** block number (executed on L1), compare. If tx block ≤ safe block → transaction is safe (executed on L1).
 
 Uses example `TX_HASH` by default; override with `TX_HASH=0x... ./check-finality.sh`.
 
@@ -157,5 +157,6 @@ chmod +x check-finality.sh
 
 ## Summary
 
-- **Abstract** can be queried with the **standard Ethereum JSON-RPC API**; block tags such as `latest`, `safe`, and `finalized` are supported.
-- **Finalized** on Abstract means the batch has been **submitted to L1 and finalized on Ethereum** (the L1 commit/prove/execute transactions are finalized). So “finalized” here implies L1 finality, not only L2. 
+- **Abstract** can be queried with the **standard Ethereum JSON-RPC API**; block tags `latest`, `safe`, and `finalized` are supported.
+- On Abstract: **finalized** = the transaction (batch) is **committed** on L1. **Safe** = the transaction is **executed** on L1.
+- For “tx is settled on L1” we should use **safe** (compare the tx block to the current `safe` block), not `finalized`. 
