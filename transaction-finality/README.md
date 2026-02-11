@@ -82,6 +82,16 @@ Abstract exposes **eth_getBlockByNumber**. The first parameter can be a **block 
 | `"safe"`      | Safe block (node’s view of a block that is unlikely to reorg). |
 | `"finalized"` | Finalized block (L2 finality; on some chains tied to L1). |
 
+**Examples (use Abstract RPC and optional `TX_HASH` / block from receipt):**
+```bash
+export RPC="https://api.testnet.abs.xyz"
+
+curl -s -X POST "$RPC" -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["finalized", false]}' | jq
+```
+
+Second parameter `false` = return block without full tx objects; use `true` for full transactions.
+
 **Example output** (excerpt: `number`, `l1BatchNumber`, `hash`):
 ```json
 {
@@ -95,16 +105,6 @@ Abstract exposes **eth_getBlockByNumber**. The first parameter can be a **block 
   }
 }
 ```
-
-**Examples (use Abstract RPC and optional `TX_HASH` / block from receipt):**
-```bash
-export RPC="https://api.testnet.abs.xyz"
-
-curl -s -X POST "$RPC" -H "content-type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["finalized", false]}' | jq
-```
-
-Second parameter `false` = return block without full tx objects; use `true` for full transactions.
 
 **Get L1 batch status** (by `l1BatchNumber` from a block). Example: `l1BatchNumber = 0x4f4e` = **20302** in decimal.
 ```bash
@@ -151,6 +151,15 @@ Uses example `TX_HASH` by default; override with `TX_HASH=0x... ./check-finality
 cd transaction-finality
 chmod +x check-finality.sh
 ./check-finality.sh
+```
+
+**`mainnet-safe-finalized.sh`** — mainnet-only experiment. Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both batch numbers. Use it to compare how far L1 has progressed: the batch for the **safe** block should have `executeTxHash` set (executed on L1); the batch for the **finalized** block is typically only committed (or proved) on L1. Confirms that “safe” ≈ executed on L1 and “finalized” ≈ committed on L1.
+
+**Run** (default RPC: mainnet):
+```bash
+cd transaction-finality
+chmod +x mainnet-safe-finalized.sh
+./mainnet-safe-finalized.sh
 ```
 
 ---
