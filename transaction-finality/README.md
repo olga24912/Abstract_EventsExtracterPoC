@@ -79,8 +79,8 @@ Abstract exposes **eth_getBlockByNumber**. The first parameter can be a **block 
 | First param   | Meaning |
 |---------------|--------|
 | `"latest"`    | Latest L2 block (can change with new blocks). |
-| `"safe"`      | Safe block (node’s view of a block that is unlikely to reorg). |
-| `"finalized"` | Finalized block (L2 finality; on some chains tied to L1). |
+| `"safe"`      | Batch **committed** on L1. |
+| `"finalized"` | Batch **executed** on L1. |
 
 **Examples (use Abstract RPC and optional `TX_HASH` / block from receipt):**
 ```bash
@@ -142,7 +142,7 @@ Response shows whether the batch is committed/proven/executed on L1 and the L1 t
 
 ## Check finality of a transaction (script)
 
-**`check-finality.sh`** — same idea as on Ethereum: get tx block number, get current **safe** block number (executed on L1), compare. If tx block ≤ safe block → transaction is safe (executed on L1).
+**`check-finality.sh`** — same idea as on Ethereum: get tx block number, get current **finalized** block number (executed on L1), compare. If tx block ≤ finalized block → transaction is finalized (executed on L1).
 
 Uses example `TX_HASH` by default; override with `TX_HASH=0x... ./check-finality.sh`.
 
@@ -153,13 +153,13 @@ chmod +x check-finality.sh
 ./check-finality.sh
 ```
 
-**`mainnet-safe-finalized.sh`** — mainnet-only experiment. Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both batch numbers. Use it to compare how far L1 has progressed: the batch for the **safe** block should have `executeTxHash` set (executed on L1); the batch for the **finalized** block is typically only committed (or proved) on L1. Confirms that “safe” ≈ executed on L1 and “finalized” ≈ committed on L1.
+**`safe-finalized.sh`** — Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both. The batch for the **safe** block is only **committed** on L1; the batch for the **finalized** block is **executed** on L1. Confirms: safe ≈ committed, finalized ≈ executed.
 
 **Run** (default RPC: mainnet):
 ```bash
 cd transaction-finality
-chmod +x mainnet-safe-finalized.sh
-./mainnet-safe-finalized.sh
+chmod +x safe-finalized.sh
+./safe-finalized.sh
 ```
 
 ---
@@ -167,5 +167,5 @@ chmod +x mainnet-safe-finalized.sh
 ## Summary
 
 - **Abstract** can be queried with the **standard Ethereum JSON-RPC API**; block tags `latest`, `safe`, and `finalized` are supported.
-- On Abstract: **finalized** = the transaction (batch) is **committed** on L1. **Safe** = the transaction is **executed** on L1.
-- For “tx is settled on L1” we should use **safe** (compare the tx block to the current `safe` block), not `finalized`. 
+- On Abstract: **safe** = the transaction (batch) is **committed** on L1. **Finalized** = the transaction is **executed** on L1.
+- For “tx is settled on L1” we should use **finalized** (compare the tx block to the current `finalized` block), not `safe`. 
