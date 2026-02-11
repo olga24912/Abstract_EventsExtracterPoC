@@ -1,5 +1,5 @@
 /**
- * Call emitValue(value) on deployed EventEmitter.
+ * Call emitValueWithL1Log(value) on deployed EventEmitter.
  * Usage: CONTRACT_ADDRESS=0x... npx hardhat run scripts/emitValue.js --network abstractTestnet
  *        Or set value: VALUE=42 CONTRACT_ADDRESS=0x... npx hardhat run scripts/emitValue.js --network abstractTestnet
  */
@@ -14,11 +14,12 @@ async function main() {
   const value = process.env.VALUE ? parseInt(process.env.VALUE, 10) : 42;
 
   const emitter = await hre.ethers.getContractAt("EventEmitter", contractAddress);
-  const tx = await emitter.emitValue(value);
+  const tx = await emitter.emitValueWithL1Log(value);
   console.log("Transaction hash:", tx.hash);
   const receipt = await tx.wait();
   console.log("Block number:", receipt.blockNumber);
-  console.log("Emitted ValueEmitted(msg.sender, " + value + ")");
+  console.log("Called emitValueWithL1Log(" + value + ")");
+  console.log("This emits ValueEmitted and sends L2->L1 message via L1Messenger");
 }
 
 main().catch((err) => {
