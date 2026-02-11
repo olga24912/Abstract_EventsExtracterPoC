@@ -34,10 +34,18 @@ if [[ -n "$SAFE_L1_BATCH" && "$SAFE_L1_BATCH" != "null" ]]; then
   curl -s -X POST "$RPC" -H "content-type: application/json" \
     -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"zks_getL1BatchDetails\",\"params\":[$SAFE_L1_DEC]}" | jq '.result | {number, status, commitTxHash, commitTxFinality, proveTxHash, proveTxFinality, executeTxHash, executeTxFinality}'
   echo ""
+  echo ">>> Batch for SAFE + 1 (l1BatchNumber = $((SAFE_L1_DEC + 1))):"
+  curl -s -X POST "$RPC" -H "content-type: application/json" \
+    -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"zks_getL1BatchDetails\",\"params\":[$((SAFE_L1_DEC + 1))]}" | jq '.result | {number, status, commitTxHash, commitTxFinality, proveTxHash, proveTxFinality, executeTxHash, executeTxFinality}'
+  echo ""
 fi
 
 if [[ -n "$FINAL_L1_BATCH" && "$FINAL_L1_BATCH" != "null" ]]; then
   echo ">>> Batch for FINALIZED block (l1BatchNumber = $FINAL_L1_DEC):"
   curl -s -X POST "$RPC" -H "content-type: application/json" \
     -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"zks_getL1BatchDetails\",\"params\":[$FINAL_L1_DEC]}" | jq '.result | {number, status, commitTxHash, commitTxFinality, proveTxHash, proveTxFinality, executeTxHash, executeTxFinality}'
+  echo ""
+  echo ">>> Batch for FINALIZED + 1 (l1BatchNumber = $((FINAL_L1_DEC + 1))):"
+  curl -s -X POST "$RPC" -H "content-type: application/json" \
+    -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"zks_getL1BatchDetails\",\"params\":[$((FINAL_L1_DEC + 1))]}" | jq '.result | {number, status, commitTxHash, commitTxFinality, proveTxHash, proveTxFinality, executeTxHash, executeTxFinality}'
 fi
