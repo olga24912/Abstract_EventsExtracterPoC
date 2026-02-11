@@ -7,3 +7,4 @@ coverage.json
 artifacts/
 cache/
 typechain-types/
+.cursor/
