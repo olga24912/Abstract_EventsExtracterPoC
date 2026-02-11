@@ -81,8 +81,6 @@ Abstract exposes **eth_getBlockByNumber**. The first parameter can be a **block 
 | `"latest"`    | Latest L2 block (can change with new blocks). |
 | `"safe"`      | Safe block (node’s view of a block that is unlikely to reorg). |
 | `"finalized"` | Finalized block (L2 finality; on some chains tied to L1). |
-| `"pending"`   | Pending / not yet sealed. |
-| `"0x1234"`    | Block number in hex (e.g. the block that contains your tx). |
 
 **Example output** (excerpt: `number`, `l1BatchNumber`, `hash`):
 ```json
@@ -106,4 +104,36 @@ curl -s -X POST "$RPC" -H "content-type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["finalized", false]}' | jq
 ```
 
-Second parameter `false` = return block without full tx objects; use `true` for full transactions. 
+Second parameter `false` = return block without full tx objects; use `true` for full transactions.
+
+**Get L1 batch status** (by `l1BatchNumber` from a block). Example: `l1BatchNumber = 0x4f4e` = **20302** in decimal.
+```bash
+export RPC="https://api.testnet.abs.xyz"
+
+curl -s -X POST "$RPC" -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"zks_getL1BatchDetails","params":[20302]}' | jq
+```
+
+**Example response** (excerpt):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "number": 20302,
+    "status": "verified",
+    "commitTxHash": "0x8b570651220f4d71552e2f6702516ef8a2dfe63dff19953d7dc5021974f9edc8",
+    "committedAt": "2026-02-11T20:17:46.316223Z",
+    "commitTxFinality": "finalized",
+    "proveTxHash": "0x09f2c02c0610819b7532f019b70dc4eee0e9de58cdf288e9f7d1b92e41b32a3e",
+    "provenAt": "2026-02-11T20:30:49.779802Z",
+    "proveTxFinality": "finalized",
+    "executeTxHash": "0x7dd7fa0cccfeb691d79dc3df477b3bc37f3d70a24911f01fc379177c49b59d17",
+    "executedAt": "2026-02-11T20:30:49.910702Z",
+    "executeTxFinality": "finalized",
+    "precommitTxHash": null,
+    "..."
+  }
+}
+```
+Response shows whether the batch is committed/proven/executed on L1 and the L1 tx hashes and timestamps. 
