@@ -57,7 +57,7 @@ Usual progression: **pending** → **included** → **verified**.
 
 ---
 
-## 3. Observations: which statuses appear and how often
+## 3. Observations: which statuses appear and how often (Sepolia)
 
 
 | Date/time (UTC) | N min after tx | status    | When which hash appears        |
