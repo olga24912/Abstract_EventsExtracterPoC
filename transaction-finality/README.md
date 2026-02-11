@@ -26,20 +26,19 @@ curl -s -X POST "$RPC" -H "content-type: application/json" \
 {"jsonrpc":"2.0","id":1,"result":{"isL1Originated":false,"status":"included","fee":"0x4369df7ae40","gasPerPubdata":"0xc350","initiatorAddress":"0x8bc8a30928fa0757c2d7084077dc5536c7171489","receivedAt":"2026-02-11T20:29:47.952025Z","ethCommitTxHash":null,"ethProveTxHash":null,"ethExecuteTxHash":null,"ethPrecommitTxHash":null}}
 ```
 
-L1 pipeline (when set, that step is done on Ethereum): **ethPrecommitTxHash** → **ethCommitTxHash** → **ethProveTxHash** → **ethExecuteTxHash**. Until then they are `null`.
+L1 pipeline (when set, that step is done on Ethereum): **ethCommitTxHash** → **ethProveTxHash** → **ethExecuteTxHash**. Until then they are `null`.
 
 ---
 
 ## 2. Transaction status values
 
-Usual progression: **pending** → **included** → **verified**. **failed** means the tx reverted (after execution).
+Usual progression: **pending** → **included** → **verified**.
 
 | Value      | Description |
 |-----------|-------------|
 | `pending` | In mempool, not yet in a block. |
-| `included`| In an L2 block, executed (soft confirmation). |
+| `included`| In an L2 block (soft confirmation). |
 | `verified`| Batch proven on L1 (ZK proof verified). |
-| `failed`  | Executed but reverted. |
 
 ---
 
@@ -48,12 +47,10 @@ Usual progression: **pending** → **included** → **verified**. **failed** mea
 
 | Date/time (UTC) | N min after tx | status    | When which hash appears        |
 |-----------------|----------------|-----------|--------------------------------|
-| *(example)*     | 0             | pending   | —                              |
-| *(example)*     | 1             | included  | —                              |
-| *(example)*     | 20            | included  | ethPrecommitTxHash             |
-| *(example)*     | 30            | included  | + ethCommitTxHash              |
-| *(example)*     | 60            | verified  | + ethProveTxHash               |
-| *(example)*     | 120           | verified  | + ethExecuteTxHash             |
-| *(example)*     | —             | failed    | —                              |
+| *(example)*     | 0              | pending   | —                              |
+| *(example)*     | 0              | included  | —                              |
+| *(example)*     | 30             | included  | + ethCommitTxHash              |
+| *(example)*     | 60             | verified  | + ethProveTxHash               |
+| *(example)*     | 120            | verified  | + ethExecuteTxHash             |
 
-All statuses: **pending** → **included** → **verified**. **failed** is terminal (tx reverted).
+All statuses: **pending** → **included** → **verified**. 
