@@ -41,22 +41,19 @@ Usual progression: **pending** → **included** → **verified**. **failed** mea
 | `verified`| Batch proven on L1 (ZK proof verified). |
 | `failed`  | Executed but reverted. |
 
-Also useful: **l1BatchNumber** (batch id; `null` until batch exists), **l1BatchTxIndex** (tx index in batch).
-
 ---
 
 ## 3. Observations: which statuses appear and how often
 
-*(Record check results: time after tx → status, when l1BatchNumber appeared, when verified.)*
 
-| Date/time (UTC) | TX_HASH (short) | N min after tx | status   | l1BatchNumber |
-|-----------------|-----------------|----------------|----------|---------------|
-| *(example)*     | 0xaf8926...bccd6 | 1 min        | included | null          |
-| *(example)*     | 0xaf8926...bccd6 | 60 min       | verified | 12345         |
+| Date/time (UTC) | N min after tx | status    | When which hash appears        |
+|-----------------|----------------|-----------|--------------------------------|
+| *(example)*     | 0             | pending   | —                              |
+| *(example)*     | 1             | included  | —                              |
+| *(example)*     | 20            | included  | ethPrecommitTxHash             |
+| *(example)*     | 30            | included  | + ethCommitTxHash              |
+| *(example)*     | 60            | verified  | + ethProveTxHash               |
+| *(example)*     | 120           | verified  | + ethExecuteTxHash             |
+| *(example)*     | —             | failed    | —                              |
 
----
-
-## Links
-
-- [Abstract: Transaction Lifecycle](https://docs.abs.xyz/how-abstract-works/architecture/transaction-lifecycle)
-- [zkSync: Finality](https://docs.zksync.io/zksync-protocol/rollup/finality)
+All statuses: **pending** → **included** → **verified**. **failed** is terminal (tx reverted).
