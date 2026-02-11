@@ -142,22 +142,16 @@ Response shows whether the batch is committed/proven/executed on L1 and the L1 t
 
 ## Check finality of a transaction (script)
 
-Script **`check-finality.sh`** in this folder uses `TX_HASH` (and optional `RPC`) to print L2 tx status and L1 batch finality.
+**`check-finality.sh`** — same idea as on Ethereum: get tx block number from receipt, get current finalized block number, compare. If tx block ≤ finalized block → transaction is finalized.
+
+Uses example `TX_HASH` by default; override with `TX_HASH=0x... ./check-finality.sh`.
 
 **Run:**
 ```bash
 cd transaction-finality
 chmod +x check-finality.sh
-export TX_HASH="0x..."
-# optional: export RPC="https://api.testnet.abs.xyz"
-
 ./check-finality.sh
 ```
-
-It does:
-1. **zks_getTransactionDetails** — L2 status (`pending` / `included` / `verified`), `l1BatchNumber`, `l1BatchTxIndex`.
-2. If `l1BatchNumber` is set — **zks_getL1BatchDetails** — batch `status`, `commitTxHash` / `proveTxHash` / `executeTxHash`, and `*TxFinality` (e.g. `executeTxFinality: "finalized"`).
-3. Prints whether the tx is **finalized on L1** (i.e. batch executed and L1 tx finalized).
 
 ---
 
