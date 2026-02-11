@@ -136,4 +136,11 @@ curl -s -X POST "$RPC" -H "content-type: application/json" \
   }
 }
 ```
-Response shows whether the batch is committed/proven/executed on L1 and the L1 tx hashes and timestamps. 
+Response shows whether the batch is committed/proven/executed on L1 and the L1 tx hashes and timestamps.
+
+---
+
+## Summary
+
+- **Abstract** can be queried with the **standard Ethereum JSON-RPC API**; block tags such as `latest`, `safe`, and `finalized` are supported.
+- **Finalized** on Abstract means the batch has been **submitted to L1 and finalized on Ethereum** (the L1 commit/prove/execute transactions are finalized). So “finalized” here implies L1 finality, not only L2. 
