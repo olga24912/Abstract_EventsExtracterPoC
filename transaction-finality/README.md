@@ -153,7 +153,22 @@ chmod +x check-finality.sh
 ./check-finality.sh
 ```
 
-**`safe-finalized.sh`** — Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both. The batch for the **safe** block is only **committed** on L1; the batch for the **finalized** block is **executed** on L1. Confirms: safe ≈ committed, finalized ≈ executed.
+**`safe-finalized.sh`** — Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both (and batch+1). The batch for the **safe** block is only **committed** on L1; the batch for the **finalized** block is **executed** on L1. Confirms: safe ≈ committed, finalized ≈ executed.
+
+**What “finalized on Ethereum” means here:**
+- **SAFE** — batch is **committed** on L1; the **commit** L1 tx is finalized on Ethereum (`commitTxHash` set, `commitTxFinality: "finalized"` or `"fast_finalized"`). So: committed, and that commit is finalized on Ethereum.
+- **FINALIZED** — batch is **executed** on L1; the **execute** L1 tx is finalized on Ethereum (`executeTxHash` set, `executeTxFinality: "finalized"` or `"fast_finalized"`). So: executed and finalized on Ethereum.
+
+**Example output** (mainnet, important fields only):
+
+| Block        | commitTxHash | commitTxFinality | executeTxHash | executeTxFinality |
+|--------------|--------------|------------------|---------------|-------------------|
+| SAFE         | set          | finalized        | null          | null              |
+| SAFE + 1     | set          | fast_finalized   | null          | null              |
+| FINALIZED    | set          | finalized        | set           | finalized         |
+| FINALIZED + 1| set          | finalized        | set           | fast_finalized    |
+
+SAFE batches: only commit is done and finalized on Ethereum. FINALIZED batches: execute is done and finalized on Ethereum → transactions in that batch are fully finalized on L1.
 
 **Run** (default RPC: mainnet):
 ```bash
@@ -167,5 +182,5 @@ chmod +x safe-finalized.sh
 ## Summary
 
 - **Abstract** can be queried with the **standard Ethereum JSON-RPC API**; block tags `latest`, `safe`, and `finalized` are supported.
-- On Abstract: **safe** = the transaction (batch) is **committed** on L1. **Finalized** = the transaction is **executed** on L1.
+- On Abstract: **safe** = batch **committed** on L1 and the **commit** tx is finalized on Ethereum. **Finalized** = batch **executed** on L1 and the **execute** tx is finalized on Ethereum.
 - For “tx is settled on L1” we should use **finalized** (compare the tx block to the current `finalized` block), not `safe`. 
