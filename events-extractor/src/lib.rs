@@ -5,6 +5,36 @@ use reqwest::Client;
 use serde::{Serialize, Serializer};
 use serde_json::Value;
 
+
+pub struct AbstractRpcRequest {
+    pub tx_id: EvmTxId, 
+    pub log_index: u64,
+    pub finality: EvmFinality, // safe, finalized or latest
+    pub extractors: Vec<EvmExtractor>,
+}
+
+pub struct EvmTxId(pub [u8; 32]);
+
+pub enum EvmExtractor {
+    BlockHash,
+    Event
+}
+
+pub enum EvmFinality {
+    Safe,
+    Finalized,
+    Latest,
+}
+
+pub enum ExtractedValue {
+    U64(u64),
+    Hash256([u8; 32]),
+    Bytes(Vec<u8>),
+    Bytes20([u8; 20]),
+    Bytes32([u8; 32]),
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Event {
     pub data: Vec<u8>,
