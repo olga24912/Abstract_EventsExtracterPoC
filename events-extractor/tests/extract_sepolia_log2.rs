@@ -22,31 +22,24 @@ fn event_topic0(signature: &str) -> String {
     format!("0x{}", hash.iter().map(|b| format!("{:02x}", b)).collect::<String>())
 }
 
+fn bytes_to_hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{:02x}", x)).collect()
+}
+
 /// Decode ValueEmitted(address indexed from, uint256 value) from raw log.
-/// - topics[0] = event signature hash
-/// - topics[1] = indexed `from` (address, 32 bytes, address in last 20 bytes)
-/// - data = ABI-encoded uint256 `value`
-fn decode_value_emitted(data: &str, topics: &[String]) -> (String, U256) {
-    // from: topics[1] is 32-byte word, address is right-padded (last 20 bytes = 40 hex chars)
+fn decode_value_emitted(data: &[u8], topics: &[[u8; 32]]) -> (String, U256) {
+    // from: topics[1] is 32-byte word, address is right-padded (last 20 bytes)
     let from = if let Some(t1) = topics.get(1) {
-        let hex = t1.trim_start_matches("0x");
-        let len = hex.len();
-        let start = len.saturating_sub(40);
-        format!("0x{}", &hex[start..])
+        format!("0x{}", bytes_to_hex(&t1[12..32]))
     } else {
         "0x?".to_string()
     };
 
     // value: data is single uint256, 32 bytes big-endian
     let value = {
-        let hex = data.trim_start_matches("0x");
         let mut bytes = [0u8; 32];
-        let n = (hex.len() + 1) / 2;
-        let n = n.min(32);
-        for (i, chunk) in hex.as_bytes().chunks(2).take(n).enumerate() {
-            let s = std::str::from_utf8(chunk).unwrap_or("00");
-            bytes[32 - n + i] = u8::from_str_radix(s, 16).unwrap_or(0);
-        }
+        let n = data.len().min(32);
+        bytes[32 - n..].copy_from_slice(&data[data.len().saturating_sub(n)..]);
         U256::from_big_endian(&bytes)
     };
 
@@ -62,11 +55,11 @@ async fn sepolia_log_index_2_value_emitted() {
 
     // Print full raw info
     println!("--- Abstract Sepolia: tx {} log_index {} ---", TX_HASH, LOG_INDEX);
-    println!("data:            {}", event.data);
-    println!("emitter_address: {}", event.emitter_address);
+    println!("data:            0x{}", bytes_to_hex(&event.data));
+    println!("emitter_address: 0x{}", bytes_to_hex(&event.emitter_address));
     println!("topics:");
     for (i, t) in event.topics.iter().enumerate() {
-        println!("  [{}] {}", i, t);
+        println!("  [{}] 0x{}", i, bytes_to_hex(t));
     }
     println!("--- JSON (raw) ---");
     println!("{}", serde_json::to_string_pretty(&event).unwrap());
@@ -77,7 +70,7 @@ async fn sepolia_log_index_2_value_emitted() {
     println!("--- Topic0 (event signature hash) ---");
     println!("  signature: {}", VALUE_EMITTED_SIGNATURE);
     println!("  topic0 = keccak256(signature): {}", expected_topic0);
-    println!("  received topic[0]:             {}", event.topics[0]);
+    println!("  received topic[0]:             0x{}", bytes_to_hex(&event.topics[0]));
     println!("---");
 
     // Decode ValueEmitted(address indexed from, uint256 value)
@@ -87,11 +80,10 @@ async fn sepolia_log_index_2_value_emitted() {
     println!("  value (uint256): {}", value);
     println!("---");
 
-    // Normalize for comparison (explorer may show checksum case)
-    let emitter_lower = event.emitter_address.to_lowercase();
-    let expected_emitter_lower = EXPECTED_EMITTER.to_lowercase();
+    let emitter_hex = format!("0x{}", bytes_to_hex(&event.emitter_address)).to_lowercase();
     assert_eq!(
-        emitter_lower, expected_emitter_lower,
+        emitter_hex,
+        EXPECTED_EMITTER.to_lowercase(),
         "emitter_address mismatch"
     );
     assert!(
@@ -99,12 +91,12 @@ async fn sepolia_log_index_2_value_emitted() {
         "ValueEmitted has at least topic0"
     );
     assert_eq!(
-        event.topics[0].to_lowercase(),
+        format!("0x{}", bytes_to_hex(&event.topics[0])).to_lowercase(),
         expected_topic0.to_lowercase(),
         "topic0 must equal keccak256(\"ValueEmitted(address,uint256)\")"
     );
     assert_eq!(
-        event.data.to_lowercase(),
+        format!("0x{}", bytes_to_hex(&event.data)).to_lowercase(),
         EXPECTED_DATA.to_lowercase(),
         "data (value 42)"
     );
