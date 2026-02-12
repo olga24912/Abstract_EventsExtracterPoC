@@ -14,7 +14,7 @@ curl -s -X POST "$RPC" -H "content-type: application/json" \
 
 ## Example response (trimmed)
 
-*`...` in the example = abbreviated; real response has full hex strings.*
+*In the example: `…` = omitted (shortened for readability; real response has more fields and full hex).*
 
 ```json
 {
@@ -26,11 +26,12 @@ curl -s -X POST "$RPC" -H "content-type: application/json" \
     "from": "0x8bc8a30928fa0757c2d7084077dc5536c7171489",
     "to": "0x334f261477fb0f091d0d6bd701989c05b5c49f2b",
     "logs": [
-      { "address": "0x...800a", "topics": ["0xddf252ad...", "..."], "data": "0x...", "logIndex": "0x0" },
-      { "address": "0x...800a", "topics": ["0xddf252ad...", "..."], "data": "0x...", "logIndex": "0x1" },
-      { "address": "0x334f261477fb0f091d0d6bd701989c05b5c49f2b", "topics": ["0x65db2c1a...", "0x000...8bc8a309..."], "data": "0x00...002a", "logIndex": "0x2" }
+      { "address": "0x...800a", "topics": ["0xddf252ad...", "..."], "data": "0x...", "logIndex": "0x0", ... },
+      { "address": "0x...800a", "topics": ["0xddf252ad...", "..."], "data": "0x...", "logIndex": "0x1", ... },
+      { "address": "0x334f261477fb0f091d0d6bd701989c05b5c49f2b", "topics": ["0x65db2c1a...", "0x000...8bc8a309..."], "data": "0x00...002a", "logIndex": "0x2", ... }
     ],
-    "status": "0x1"
+    "status": "0x1",
+    ...
   }
 }
 ```
