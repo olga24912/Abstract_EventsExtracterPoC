@@ -6,7 +6,7 @@ use serde::{Serialize, Serializer};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
-pub struct ExtractedEvent {
+pub struct Event {
     pub data: Vec<u8>,
     pub emitter_address: [u8; 20],
     pub topics: Vec<[u8; 32]>,
@@ -31,13 +31,13 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
-impl Serialize for ExtractedEvent {
+impl Serialize for Event {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         use serde::ser::SerializeStruct;
-        let mut st = serializer.serialize_struct("ExtractedEvent", 3)?;
+        let mut st = serializer.serialize_struct("Event", 3)?;
         st.serialize_field("data", &format!("0x{}", bytes_to_hex(&self.data)))?;
         st.serialize_field("emitter_address", &format!("0x{}", bytes_to_hex(&self.emitter_address)))?;
         st.serialize_field(
@@ -68,7 +68,7 @@ fn parse_topic(hex: &str) -> Result<[u8; 32]> {
     Ok(out)
 }
 
-pub fn extract_event(receipt: &Value, log_index: u64) -> Result<ExtractedEvent> {
+pub fn extract_event(receipt: &Value, log_index: u64) -> Result<Event> {
     let logs = receipt
         .get("logs")
         .and_then(Value::as_array)
@@ -99,7 +99,7 @@ pub fn extract_event(receipt: &Value, log_index: u64) -> Result<ExtractedEvent> 
         topics.push(parse_topic(s)?);
     }
 
-    Ok(ExtractedEvent {
+    Ok(Event {
         data,
         emitter_address,
         topics,
@@ -112,7 +112,7 @@ pub async fn fetch_and_extract(
     rpc_url: &str,
     tx_hash: &str,
     log_index: u64,
-) -> Result<ExtractedEvent> {
+) -> Result<Event> {
     let receipt = rpc_call(
         client,
         rpc_url,
