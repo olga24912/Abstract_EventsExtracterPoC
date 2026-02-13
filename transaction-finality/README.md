@@ -62,11 +62,11 @@ Usual progression: **pending** → **included** → **verified**.
 
 | Date/time (UTC) | N min after tx | status    | When which hash appears        |
 |-----------------|----------------|-----------|--------------------------------|
-| *(example)*     | 0              | pending   | —                              |
-| *(example)*     | 0              | included  | —                              |
-| *(example)*     | 30             | included  | + ethCommitTxHash              |
-| *(example)*     | 60             | verified  | + ethProveTxHash               |
-| *(example)*     | 120            | verified  | + ethExecuteTxHash             |
+| 20:29           | 0              | pending   | —                              |
+| 20:29           | 0              | included  | —                              |
+| 03:50           | 7:21           | included  | + ethCommitTxHash              |
+| 03:59           | 7:30           | verified  | + ethProveTxHash               |
+| 03:59           | 7:30           | verified  | + ethExecuteTxHash             |
 
 All statuses: **pending** → **included** → **verified**.
 
@@ -156,8 +156,8 @@ chmod +x check-finality.sh
 **`safe-finalized.sh`** — Fetches the current **safe** and **finalized** blocks via `eth_getBlockByNumber`, extracts **l1BatchNumber** from each, then calls **zks_getL1BatchDetails** for both (and batch+1). The batch for the **safe** block is only **committed** on L1; the batch for the **finalized** block is **executed** on L1. Confirms: safe ≈ committed, finalized ≈ executed.
 
 **What “finalized on Ethereum” means here:**
-- **SAFE** — batch is **committed** on L1; the **commit** L1 tx is finalized on Ethereum (`commitTxHash` set, `commitTxFinality: "finalized"` or `"fast_finalized"`). So: committed, and that commit is finalized on Ethereum.
-- **FINALIZED** — batch is **executed** on L1; the **execute** L1 tx is finalized on Ethereum (`executeTxHash` set, `executeTxFinality: "finalized"` or `"fast_finalized"`). So: executed and finalized on Ethereum.
+- **SAFE** — batch is **committed** on L1; the **commit** L1 tx is finalized on Ethereum (`commitTxHash` set, `commitTxFinality: "finalized"`). So: committed, and that commit is finalized on Ethereum.
+- **FINALIZED** — batch is **executed** on L1; the **execute** L1 tx is finalized on Ethereum (`executeTxHash` set, `executeTxFinality: "finalized"``). So: executed and finalized on Ethereum.
 
 **Example output** (mainnet, important fields only):
 
@@ -176,6 +176,21 @@ cd transaction-finality
 chmod +x safe-finalized.sh
 ./safe-finalized.sh
 ```
+
+---
+
+## How often are batches sent to L1?
+
+Batch sealing is **not on a fixed schedule** — it depends on transaction count, data size, gas limits, and a timeout fallback. See [Blocks and batches — ZKsync Docs](https://docs.zksync.io/zksync-protocol/rollup/blocks).
+
+Each batch goes through three L1 transactions: **commit → prove → execute**.
+
+On mainnet, based on observed data, batches are committed roughly **every ~20 minutes**.
+
+Real-time batch list:
+- Mainnet: https://abscan.org/batches
+- Sepolia: https://sepolia.abscan.org/batches
+
 
 ---
 
